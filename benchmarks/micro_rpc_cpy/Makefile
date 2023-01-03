@@ -15,11 +15,13 @@ ESOBJS_COMMON= $(TAS_CODE)/lib/utils/rng.o \
 include ../common/Makefile.mtcp
 
 
-all: echoserver_linux testclient_linux echoserver_ll
+all: copy_sweep
 all-sockets: echoserver_linux testclient_linux
 all-mtcp: echoserver_mtcp testclient_mtcp
 all-ll: echoserver_ll
 
+copy_sweep: copy_sweep.cpp
+	g++ -o $@ $^ $(LDLIBS) -g
 
 echoserver_linux: echoserver.o $(ESOBJS_COMMON)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)

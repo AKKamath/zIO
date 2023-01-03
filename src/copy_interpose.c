@@ -61,7 +61,7 @@
 
 #define UFFD_PROTO
 
-#define LOGON 1
+#define LOGON 0
 #if LOGON
 #define LOG(...) fprintf(stderr, __VA_ARGS__)
 #else
@@ -589,7 +589,9 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) {
 ssize_t recv(int sockfd, void* buf, size_t count, int flags) {
   ensure_init();
 
-  ssize_t ret = libc_recv(sockfd, buf, count, flags);
+  ssize_t ret = 0;
+  if(sockfd != -2)
+    ret = libc_recv(sockfd, buf, count, flags);
   uint64_t buf_addr = (uint64_t) buf;
 
   pthread_mutex_lock(&mu);
