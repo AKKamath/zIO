@@ -10,6 +10,7 @@
 #include <sys/syscall.h>         /* Definition of SYS_* constants */
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 using namespace std::chrono;
 
 #define MAX_NUM_COPYS 128
@@ -172,11 +173,15 @@ static void *receiver_run(void *arg)
     int copies = 0;
     auto start = TIME_NOW;
     uint64_t i = 0;
-    do {
+    //int fd = open("foo.txt", O_RDONLY);
+    while(WHILE_COND) {
+    //for(int i = 0; i < 200; ++i) {
+        //void *buff = aligned_alloc(PAGE_SIZE, max_bytes);
+        //void *buff_copy = aligned_alloc(PAGE_SIZE, max_bytes * MAX_NUM_COPYS);
         //void *buff = NULL, *buff_copy = NULL;
-        //while(!send_buf->pop(&buff, &buff_copy) && WHILE_COND);
+        while(!send_buf->pop(&buff, &buff_copy) && WHILE_COND);
         if(buff && buff_copy) {
-            recv(-2, buff, max_bytes, 0);
+            recv(-2, buff, max_bytes, 0xdeadbeef);
             for(int i = 0; i < MAX_NUM_COPYS; ++i) {
                 if(i == 0)
                     memcpy(&((char*)buff_copy)[0], 
@@ -184,13 +189,13 @@ static void *receiver_run(void *arg)
                 else
                     memcpy(&((char*)buff_copy)[i * max_bytes], 
                         &((char*)buff_copy)[(i - 1) * max_bytes], max_bytes);
-                    
+
                 ++copies;
-                printf("Copy %d: %d\n", id, i);
+                //printf("Copy %d: %d\n", id, i);
             }
-            //while(!recv_buf->push(buff, buff_copy) && WHILE_COND);
+            while(!recv_buf->push(buff, buff_copy) && WHILE_COND);
         }
-    } while(WHILE_COND);
+    }
 
     // Stop counting and read value
     ioctl(page_faults_fd, PERF_EVENT_IOC_DISABLE, 0);
