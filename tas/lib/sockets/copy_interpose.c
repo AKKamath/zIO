@@ -378,6 +378,7 @@ ssize_t recv(int sockfd, void *buf, size_t len, int flags)
 {
   ssize_t ret;
   ensure_init();
+  skiplist_insert(&addr_list, ((uint64_t) buf) & PAGE_MASK, buf, len, 0);
   if ((ret = tas_recv(sockfd, buf, len, flags)) == -1 && errno == EBADF) {
     return libc_recv(sockfd, buf, len, flags);
   }
@@ -740,7 +741,7 @@ void free(void* ptr){
 			entry->free = 1;
 			return;
 		} else {
-			skiptlist_delete(&addr_list, ptr_bounded);
+			skiplist_delete(&addr_list, ptr_bounded);
 		}
 	}
 	return libc_free(ptr);
