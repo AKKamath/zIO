@@ -3,7 +3,7 @@
 THREADS=4
 TIMEOUT=10
 ZIO=/home/akkamath/zIO
-ZIO_BIN=../../copy_interpose.so
+ZIO_BIN=../../tas/lib/copy_interpose.so
 BYTE_LIST="524288"
 
 #This is the copy_sweep directory
