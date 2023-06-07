@@ -11,16 +11,17 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <algorithm>
 
 using namespace std::chrono;
 
-#define MAX_NUM_COPYS 128
+#define MAX_NUM_COPYS 16
 #define MAX_THREADS 16
 #define PAGE_SIZE 4096
 #define MAX_ENTRIES 4096
 
 #define TIME_NOW high_resolution_clock::now()
-#define TIME_DIFF(a, b) duration_cast<milliseconds>(a - b).count()
+#define TIME_DIFF(a, b) duration_cast<microseconds>(a - b).count()
 
 static uint64_t max_bytes = 2048;
 static uint64_t max_time = 0;
@@ -93,6 +94,7 @@ struct core {
     fifo_buffer *send_buf;
     fifo_buffer *recv_buf;
     uint64_t page_faults;
+    uint64_t time;
 } *cs;
 
 #define WHILE_COND (TIME_DIFF(TIME_NOW, start) < max_time * 1000)
@@ -199,6 +201,9 @@ static void *receiver_run(void *arg)
            // while(!recv_buf->push(buff, buff_copy) && WHILE_COND);
         //}
     }
+    auto end = TIME_NOW;
+
+    printf("Thread %d: Time %ld ms\n", id, TIME_DIFF(end, start));
 
     // Stop counting and read value
     ioctl(page_faults_fd, PERF_EVENT_IOC_DISABLE, 0);
@@ -207,6 +212,7 @@ static void *receiver_run(void *arg)
 
     cs->copies = copies;
     cs->page_faults = page_faults_count;
+    cs->time = TIME_DIFF(end, start);
 
     return NULL;
 }
@@ -256,19 +262,18 @@ int main(int argc, char *argv[])
     }
     
     uint64_t copies = 0, page_faults_count = 0;
-    auto start = TIME_NOW;
+    uint64_t total_time = 0;
     for (int i = 0; i < num_threads; i++) {
         //pthread_join(send_pts[i], NULL);
         //pthread_join(clean_pts[i], NULL);
         pthread_join(recv_pts[i], NULL);
         copies += cs[i].copies;
         page_faults_count += cs[i].page_faults;
+        total_time = std::max(total_time, cs[i].time);
     }
-    auto end = TIME_NOW;
 
-    double total_time = TIME_DIFF(end, start) / 1000.0;
-    printf("Copies = %ld\nSize = %ld bytes\nTime = %.2f s\nThroughput = %.2f mbps\n", copies, max_bytes,
-        total_time, (double)(copies * max_bytes) / total_time / (1024.0 * 1024.0));
+    printf("Copies = %ld\nSize = %ld bytes\nTime = %.3f ms\nThroughput = %.2f mbps\n", copies, max_bytes,
+        (double)total_time / 1000.0, (double)(copies * max_bytes) / (double)total_time / (1024.0 * 1024.0));
     printf("Page faults: %ld\n", page_faults_count);
     return EXIT_SUCCESS;
 }
