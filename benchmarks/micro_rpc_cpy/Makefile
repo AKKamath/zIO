@@ -21,7 +21,7 @@ all-mtcp: echoserver_mtcp testclient_mtcp
 all-ll: echoserver_ll
 
 copy_sweep: copy_sweep.cpp
-	g++ -o $@ $^ $(LDLIBS) -g
+	g++ -o $@ $^ $(LDLIBS) -g  -I../../../gem5/include ../../../gem5/util/m5/build/x86/out/libm5.a
 
 echoserver_linux: echoserver.o $(ESOBJS_COMMON)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)

@@ -165,6 +165,7 @@ static inline void ensure_init(void);
 
 uint64_t num_fast_writes, num_slow_writes, num_fast_copy, num_slow_copy,
     num_faults;
+double time_search, time_insert, time_other;
 
 static void *(*libc_memcpy)(void *dest, const void *src, size_t n);
 static void *(*libc_memmove)(void *dest, const void *src, size_t n);
@@ -182,6 +183,13 @@ static ssize_t (*libc_recv)(int sockfd, void *buf, size_t len, int flags);
 static ssize_t (*libc_recvmsg)(int sockfd, struct msghdr *msg, int flags);
 
 skiplist addr_list;
+
+static inline uint64_t rdtsc(void)
+{
+    uint32_t eax, edx;
+    asm volatile ("rdtsc" : "=a" (eax), "=d" (edx));
+    return ((uint64_t) edx << 32) | eax;
+}
 
 void print_trace(void) {
   char **strings;
@@ -270,9 +278,11 @@ ssize_t pwrite(int sockfd, const void *buf, size_t count, off_t offset) {
 int recursive_copy = 0;
 
 void handle_existing_buffer(uint64_t addr) {
+  uint64_t start = rdtsc();
   snode *exist = skiplist_search_buffer_fallin(&addr_list, addr);
+  time_search += rdtsc() - start;
   if (exist) {
-    
+
 #if LOGON	  
 	 printf("existing entry\n");
     snode_dump(exist);
@@ -306,6 +316,7 @@ void *memcpy(void *dest, const void *src, size_t n) {
   ensure_init();
 
   static uint64_t prev_start, prev_end;
+  uint64_t start, end;
   // TODO: parse big copy for multiple small copies
 
   const char cannot_optimize = (n <= OPT_THRESHOLD);
@@ -327,14 +338,16 @@ void *memcpy(void *dest, const void *src, size_t n) {
 
   if (recursive_copy == 0)
     handle_existing_buffer(core_dst_buffer_addr);
-
+  start = rdtsc();
   snode *src_entry =
       skiplist_search_buffer_fallin(&addr_list, core_src_buffer_addr);
+  time_search += rdtsc() - start;
   if (src_entry) {
 #if LOGON
     printf("[%s] found src entry\n", __func__);
     snode_dump(src_entry);
 #endif
+    start = rdtsc();
     if (src_entry->orig == src_entry->addr) {
       // void *ret = mmap(
       //     src_entry->addr + src_entry->offset, src_entry->len, PROT_READ,
@@ -387,8 +400,10 @@ void *memcpy(void *dest, const void *src, size_t n) {
     dest_entry.offset = left_fringe_len;
 
     size_t remaining_len = n - left_fringe_len;
+    time_other += rdtsc() - start;
 
     if (dest_entry.len > OPT_THRESHOLD) {
+      start = rdtsc();
       skiplist_insert_entry(&addr_list, &dest_entry);
       void *ret = mmap(dest_entry.addr + dest_entry.offset, dest_entry.len,
                        PROT_READ | PROT_WRITE,
@@ -404,8 +419,9 @@ void *memcpy(void *dest, const void *src, size_t n) {
 #endif
 
       remaining_len -= dest_entry.len;
+      time_insert += rdtsc() - start;
     }
-
+    start = rdtsc();
     LOG("[%s] remaining_len %zu out of %zu\n", __func__, remaining_len, n);
 
     if (remaining_len > 0) {
@@ -425,7 +441,7 @@ void *memcpy(void *dest, const void *src, size_t n) {
 
     LOG("[%s] ########## Fast copy done\n", __func__);
     pthread_mutex_unlock(&mu);
-
+    time_other += rdtsc() - start;
     return dest;
   } else {
     if (recursive_copy == 0) {
@@ -702,8 +718,15 @@ void *print_stats() {
               "writes: %lu\tpage faults: %lu\n",
               num_fast_copy, num_slow_copy, num_fast_writes, num_slow_writes,
               num_faults);
+    
+    double total_time = time_search + time_insert + time_other;
+    LOG_STATS("Time: search = %f, insert = %f, other = %f\n",
+              time_search / total_time * 100.0, 
+              time_insert / total_time * 100.0, 
+              time_other / total_time * 100.0);
     num_fast_writes = num_slow_writes = num_fast_copy = num_slow_copy =
         num_faults = 0;
+    time_search = time_insert = time_other = 0;
     sleep(1);
   }
 }
