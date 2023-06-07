@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
     }
 
     printf("Copies = %ld\nSize = %ld bytes\nTime = %.3f ms\nThroughput = %.2f mbps\n", copies, max_bytes,
-        (double)total_time / 1000.0, (double)(copies * max_bytes) / (double)total_time / (1024.0 * 1024.0));
+        (double)total_time / 1000.0, (double)(copies * max_bytes) / ((double)total_time / (1000.0 * 1000.0)) / (1024.0 * 1024.0));
     printf("Page faults: %ld\n", page_faults_count);
     return EXIT_SUCCESS;
 }
