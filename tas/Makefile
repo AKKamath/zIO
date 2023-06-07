@@ -72,8 +72,8 @@ TESTS= \
 	$(TESTS_AUTO_FULL)
 
 
-all: lib/libtas_sockets.so lib/libtas_interpose.so lib/zio_interpose.so \
-	lib/libtas.so lib/tas_copy_interpose.so lib/copy_interpose.so \
+all: lib/copy_interpose.so #lib/libtas_sockets.so lib/libtas_interpose.so lib/zio_interpose.so \
+	lib/libtas.so lib/tas_copy_interpose.so  \
 	lib/page_fault_test.so \
 	tools/tracetool tools/statetool tools/scaletool \
 	tas/tas
