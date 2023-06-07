@@ -27,7 +27,7 @@
 ## 2. Dependent package installation
 
 ```shell
-sudo apt install build-essential make pkg-config autoconf libnuma-dev libaio1 libaio-dev uuid-dev librdmacm-dev ndctl numactl libncurses-dev libssl-dev libelf-dev rsync
+apt install build-essential make pkg-config autoconf libnuma-dev libaio1 libaio-dev uuid-dev librdmacm-dev ndctl numactl libncurses-dev libssl-dev libelf-dev rsync libpthread-stubs0-dev
 ```
 
 ## 3. Hardware setup
