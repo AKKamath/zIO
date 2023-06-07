@@ -146,12 +146,12 @@ static void *receiver_run(void *arg)
 {
     struct core *cs = (struct core*)arg;
     int id = cs->id;
-    struct fifo_buffer *send_buf = cs->send_buf;
-    struct fifo_buffer *recv_buf = cs->recv_buf;
+    //struct fifo_buffer *send_buf = cs->send_buf;
+    //struct fifo_buffer *recv_buf = cs->recv_buf;
     //for(int i = 0; i < MAX_NUM_COPYS; ++i)
     //    recv(-2, &thread_buffer[i * max_bytes], max_bytes, 0);
-    void *buff = aligned_alloc(PAGE_SIZE, max_bytes);
-    void *buff_copy = aligned_alloc(PAGE_SIZE, max_bytes * MAX_NUM_COPYS);
+    //void *buff = aligned_alloc(PAGE_SIZE, max_bytes);
+    //void *buff_copy = aligned_alloc(PAGE_SIZE, max_bytes * MAX_NUM_COPYS);
 
 
     struct perf_event_attr pe_attr_page_faults;
@@ -177,11 +177,11 @@ static void *receiver_run(void *arg)
     //int fd = open("foo.txt", O_RDONLY);
     while(WHILE_COND) {
     //for(int i = 0; i < 200; ++i) {
-        //void *buff = aligned_alloc(PAGE_SIZE, max_bytes);
-        //void *buff_copy = aligned_alloc(PAGE_SIZE, max_bytes * MAX_NUM_COPYS);
+        void *buff = aligned_alloc(PAGE_SIZE, max_bytes);
+        void *buff_copy = aligned_alloc(PAGE_SIZE, max_bytes * MAX_NUM_COPYS);
         //void *buff = NULL, *buff_copy = NULL;
-        while(!send_buf->pop(&buff, &buff_copy) && WHILE_COND);
-        if(buff && buff_copy) {
+        //while(!send_buf->pop(&buff, &buff_copy) && WHILE_COND);
+        //if(buff && buff_copy) {
             recv(-2, buff, max_bytes, 0xdeadbeef);
             for(int i = 0; i < MAX_NUM_COPYS; ++i) {
                 if(i == 0)
@@ -194,8 +194,10 @@ static void *receiver_run(void *arg)
                 ++copies;
                 //printf("Copy %d: %d\n", id, i);
             }
-            while(!recv_buf->push(buff, buff_copy) && WHILE_COND);
-        }
+            free(buff);
+            free(buff_copy);
+           // while(!recv_buf->push(buff, buff_copy) && WHILE_COND);
+        //}
     }
 
     // Stop counting and read value
@@ -235,7 +237,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < num_threads; i++) {
         cs[i].id = i;
         cs[i].copies = 0;
-        cs[i].send_buf = (fifo_buffer*)malloc(sizeof(fifo_buffer));
+        /*cs[i].send_buf = (fifo_buffer*)malloc(sizeof(fifo_buffer));
         cs[i].send_buf->init();
         cs[i].recv_buf = (fifo_buffer*)malloc(sizeof(fifo_buffer));
         cs[i].recv_buf->init();
@@ -243,7 +245,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "pthread_create failed\n");
             return EXIT_FAILURE;
         }
-        /*if (pthread_create(clean_pts + i, NULL, cleaner_run, &cs[i])) {
+        if (pthread_create(clean_pts + i, NULL, cleaner_run, &cs[i])) {
             fprintf(stderr, "pthread_create failed\n");
             return EXIT_FAILURE;
         }*/
