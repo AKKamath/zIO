@@ -184,7 +184,7 @@ static void *receiver_run(void *arg)
         //void *buff = NULL, *buff_copy = NULL;
         //while(!send_buf->pop(&buff, &buff_copy) && WHILE_COND);
         //if(buff && buff_copy) {
-            recv(-2, buff, max_bytes, 0xdeadbeef);
+            //recv(-2, buff, max_bytes, 0xdeadbeef);
             for(int i = 0; i < MAX_NUM_COPYS; ++i) {
                 if(i == 0)
                     memcpy(&((char*)buff_copy)[0], 
