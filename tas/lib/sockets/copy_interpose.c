@@ -597,6 +597,12 @@ void* memcpy (void* dest, const void* src, size_t n){
 	//if(n > 16000){
 	//       	print_trace();
 	//}
+  // Insert now if not exists
+  if(!entry) {
+    skiplist_insert(&addr_list, ((uint64_t) src) & PAGE_MASK, src, n, 0);
+    entry = skiplist_search(&addr_list, ((uint64_t) src) & PAGE_MASK);
+  }
+
 	if(entry) {
 		uint64_t original = entry->orig;
 		uint32_t length = entry->len;
