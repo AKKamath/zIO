@@ -178,13 +178,13 @@ static void *receiver_run(void *arg)
     uint64_t i = 0;
     //int fd = open("foo.txt", O_RDONLY);
     while(WHILE_COND) {
-    //for(int i = 0; i < 200; ++i) {
         void *buff = aligned_alloc(PAGE_SIZE, max_bytes);
         void *buff_copy = aligned_alloc(PAGE_SIZE, max_bytes * MAX_NUM_COPYS);
+            recv(-2, buff, max_bytes, 0xdeadbeef);
+    //for(int i = 0; i < 200; ++i) {
         //void *buff = NULL, *buff_copy = NULL;
         //while(!send_buf->pop(&buff, &buff_copy) && WHILE_COND);
         //if(buff && buff_copy) {
-            //recv(-2, buff, max_bytes, 0xdeadbeef);
             for(int i = 0; i < MAX_NUM_COPYS; ++i) {
                 if(i == 0)
                     memcpy(&((char*)buff_copy)[0], 
@@ -196,10 +196,10 @@ static void *receiver_run(void *arg)
                 ++copies;
                 //printf("Copy %d: %d\n", id, i);
             }
-            free(buff);
-            free(buff_copy);
            // while(!recv_buf->push(buff, buff_copy) && WHILE_COND);
         //}
+            //free(buff);
+            //free(buff_copy);
     }
     auto end = TIME_NOW;
 

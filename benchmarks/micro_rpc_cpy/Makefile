@@ -15,13 +15,22 @@ ESOBJS_COMMON= $(TAS_CODE)/lib/utils/rng.o \
 include ../common/Makefile.mtcp
 
 
-all: copy_sweep
+all: copy_sweep rand_test seq_test multi_test
 all-sockets: echoserver_linux testclient_linux
 all-mtcp: echoserver_mtcp testclient_mtcp
 all-ll: echoserver_ll
 
 copy_sweep: copy_sweep.cpp
 	g++ -o $@ $^ $(LDLIBS) -g -lpthread #-I../../../gem5/include ../../../gem5/util/m5/build/x86/out/libm5.a
+
+rand_test: rand_test.cpp
+	g++ -o $@ $^ $(LDLIBS) -g -lpthread
+
+seq_test: seq_test.cpp
+	g++ -o $@ $^ $(LDLIBS) -g -lpthread
+
+multi_test: multi_test.cpp
+	g++ -o $@ $^ $(LDLIBS) -g -lpthread
 
 echoserver_linux: echoserver.o $(ESOBJS_COMMON)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
