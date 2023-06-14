@@ -52,7 +52,7 @@
 
 //#define OPT_THRESHOLD 0xfffffffffffffffff
 // #define OPT_THRESHOLD 1048575
-#define OPT_THRESHOLD 57343
+#define OPT_THRESHOLD 4095
 
 #define PAGE_SIZE sysconf(_SC_PAGE_SIZE)
 #define PAGE_MASK ~(PAGE_SIZE - 1) // 0xfffffffff000
@@ -165,7 +165,7 @@ static inline void ensure_init(void);
 
 uint64_t num_fast_writes, num_slow_writes, num_fast_copy, num_slow_copy,
     num_faults;
-double time_search, time_insert, time_other;
+uint64_t time_search, time_insert, time_other;
 
 static void *(*libc_memcpy)(void *dest, const void *src, size_t n);
 static void *(*libc_memmove)(void *dest, const void *src, size_t n);
@@ -361,7 +361,7 @@ void *memcpy(void *dest, const void *src, size_t n) {
       if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register) == -1) {
         if (errno == EINVAL) {
           LOG("[%s] write-protection fault fault by userfaultfd may not be"
-              "supported by the current kernel\n");
+              "supported by the current kernel\n", __func__);
         }
         perror("register with WP");
         abort();
@@ -720,10 +720,10 @@ void *print_stats() {
               num_faults);
     
     double total_time = time_search + time_insert + time_other;
-    LOG_STATS("Time: search = %f, insert = %f, other = %f\n",
-              time_search / total_time * 100.0, 
-              time_insert / total_time * 100.0, 
-              time_other / total_time * 100.0);
+    LOG_STATS("Time: search = %lu (%.2f%%), insert =  %lu (%.2f%%), other =  %lu (%.2f%%)\n",
+              time_search, (double)time_search / total_time * 100.0, 
+              time_insert, (double)time_insert / total_time * 100.0, 
+              time_other, (double)time_other / total_time * 100.0);
     num_fast_writes = num_slow_writes = num_fast_copy = num_slow_copy =
         num_faults = 0;
     time_search = time_insert = time_other = 0;
