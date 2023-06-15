@@ -341,7 +341,30 @@ void *memcpy(void *dest, const void *src, size_t n) {
   start = rdtsc();
   snode *src_entry =
       skiplist_search_buffer_fallin(&addr_list, core_src_buffer_addr);
+  
   time_search += rdtsc() - start;
+  start = rdtsc();
+
+  // Insert if entry not existing
+  if(!src_entry) {
+    uint64_t left_fringe_len = LEFT_FRINGE_LEN(src);
+    uint64_t right_fringe_len = RIGHT_FRINGE_LEN(n, left_fringe_len);
+    uint64_t core_buffer_len = n - (left_fringe_len + right_fringe_len);
+    snode new_entry;
+    new_entry.lookup = src + left_fringe_len;
+    new_entry.orig = src;
+    new_entry.addr = src;
+    new_entry.len = core_buffer_len;
+    new_entry.offset = left_fringe_len;
+    skiplist_insert_entry(&addr_list, &new_entry);
+#if LOGON
+    LOG("[%s] insert entry\n", __func__);
+    node_dump(&new_entry);
+#endif
+    src_entry = skiplist_search_buffer_fallin(&addr_list, core_src_buffer_addr);
+  }
+  time_insert += rdtsc() - start;
+
   if (src_entry) {
 #if LOGON
     printf("[%s] found src entry\n", __func__);
