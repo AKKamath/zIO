@@ -198,7 +198,7 @@ void print_trace(void) {
   strings = backtrace_symbols(array, size);
   for (i = 0; i < 5; i++)
     LOG("%s\n", strings[i]);
-  libc_free(strings);
+  free(strings);
 }
 
 ssize_t pwrite(int sockfd, const void *buf, size_t count, off_t offset) {
@@ -498,45 +498,45 @@ ssize_t send(int sockfd, const void* buf, size_t count, int flags) {
 
   ssize_t ret = 0;
 
-  int i;
+  //int i;
 
-    if (count > OPT_THRESHOLD) {
+  if (count > OPT_THRESHOLD) {
 
-      uint64_t off = 0;
-      uint64_t remaining_len = count;
-      uint64_t send_buf, send_len;
+    uint64_t off = 0;
+    //uint64_t remaining_len = count;
+    uint64_t send_buf, send_len;
 
-        snode *entry =
-            skiplist_search_buffer_fallin(&addr_list, (uint64_t)buf + off);
+    snode *entry =
+        skiplist_search_buffer_fallin(&addr_list, (uint64_t)buf + off);
 
-        if (entry) {
-          //iovec[iovcnt].iov_base = entry->orig + (buf - entry->addr) + off;
-          send_buf = entry->orig + (buf - entry->addr) + off;
-          //iovec[iovcnt].iov_len = entry->len;
-          send_len = entry->len;
-        } else {
-          //iovec[iovcnt].iov_base = buf + off;
-          //iovec[iovcnt].iov_len = LEFT_FRINGE_LEN(iovec[iovcnt].iov_base) == 0
-          //                            ? PAGE_SIZE
-          //                            : LEFT_FRINGE_LEN(iovec[iovcnt].iov_base);
-	  send_buf = buf;
-	  send_len = count;
-        }
-
-      ssize_t sent = libc_send(sockfd, send_buf, send_len, flags);
-      if (sent < 0) {
-        perror("send error");
-        abort();
-      }
-      ret += sent;
+    if (entry) {
+      //iovec[iovcnt].iov_base = entry->orig + (buf - entry->addr) + off;
+      send_buf = entry->orig + ((uint64_t)buf - entry->addr) + off;
+      //iovec[iovcnt].iov_len = entry->len;
+      send_len = entry->len;
     } else {
-      ssize_t sent = libc_send(sockfd, buf, count, flags);
-      if (sent < 0) {
-        perror("send error");
-        abort();
-      }
-      ret += sent;
+      //iovec[iovcnt].iov_base = buf + off;
+      //iovec[iovcnt].iov_len = LEFT_FRINGE_LEN(iovec[iovcnt].iov_base) == 0
+      //                            ? PAGE_SIZE
+      //                            : LEFT_FRINGE_LEN(iovec[iovcnt].iov_base);
+      send_buf = (uint64_t)buf;
+      send_len = count;
     }
+
+    ssize_t sent = libc_send(sockfd, (void *)send_buf, send_len, flags);
+    if (sent < 0) {
+      perror("send error");
+      abort();
+    }
+    ret += sent;
+  } else {
+    ssize_t sent = libc_send(sockfd, buf, count, flags);
+    if (sent < 0) {
+      perror("send error");
+      abort();
+    }
+    ret += sent;
+  }
 
   pthread_mutex_unlock(&mu);
   return ret;
@@ -632,41 +632,41 @@ ssize_t recv(int sockfd, void* buf, size_t count, int flags) {
 
   pthread_mutex_lock(&mu);
 
-  int i;
+  //int i;
     
   uint64_t left_fringe_len = LEFT_FRINGE_LEN(buf_addr);
-    uint64_t right_fringe_len =
-        RIGHT_FRINGE_LEN(count, left_fringe_len);
-    uint64_t core_buffer_len =
-        count - (left_fringe_len + right_fringe_len);
-    if (count > OPT_THRESHOLD ) { //&& core_buffer_len > OPT_THRESHOLD) {
-      snode new_entry;
-      new_entry.lookup = buf_addr + left_fringe_len;
-      new_entry.orig = buf_addr;
-      new_entry.addr = buf_addr;
-      new_entry.len = core_buffer_len;
-      new_entry.offset = left_fringe_len;
+  uint64_t right_fringe_len =
+      RIGHT_FRINGE_LEN(count, left_fringe_len);
+  uint64_t core_buffer_len =
+      count - (left_fringe_len + right_fringe_len);
+  if (count > OPT_THRESHOLD ) { //&& core_buffer_len > OPT_THRESHOLD) {
+    snode new_entry;
+    new_entry.lookup = buf_addr + left_fringe_len;
+    new_entry.orig = buf_addr;
+    new_entry.addr = buf_addr;
+    new_entry.len = core_buffer_len;
+    new_entry.offset = left_fringe_len;
 
-      handle_existing_buffer(new_entry.lookup);
+    handle_existing_buffer(new_entry.lookup);
 
-      snode *prev = skiplist_search_buffer_fallin(
-          &addr_list, PAGE_ALIGN_DOWN(new_entry.addr) - 1);
+    snode *prev = skiplist_search_buffer_fallin(
+        &addr_list, (uint64_t)PAGE_ALIGN_DOWN(new_entry.addr) - 1);
 
-      if (0 && prev &&
-          prev->addr + prev->offset + prev->len + PAGE_SIZE ==
-              new_entry.addr + new_entry.offset) {
-        LOG("[%s] %p will be merged to %p-%p, %lu\n", __func__,
-               new_entry.addr, prev->addr, prev->addr + prev->len, prev->len);
+    if (0 && prev &&
+        prev->addr + prev->offset + prev->len + PAGE_SIZE ==
+            new_entry.addr + new_entry.offset) {
+      LOG("[%s] %p will be merged to %p-%p, %lu\n", __func__,
+              new_entry.addr, prev->addr, prev->addr + prev->len, prev->len);
 
-        prev->len += new_entry.len + (new_entry.offset == 0 ? 0 : PAGE_SIZE);
-      } else {
-        skiplist_insert_entry(&addr_list, &new_entry);
+      prev->len += new_entry.len + (new_entry.offset == 0 ? 0 : PAGE_SIZE);
+    } else {
+      skiplist_insert_entry(&addr_list, &new_entry);
 #if LOGON
 	LOG("[%s] insert entry\n", __func__);
         snode_dump(&new_entry);
 #endif
-      }
     }
+  }
 
   pthread_mutex_unlock(&mu);
   return ret;
@@ -689,7 +689,7 @@ ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags) {
         msg->msg_iov[i].iov_len - (left_fringe_len + right_fringe_len);
     if (msg->msg_iov[i].iov_len > OPT_THRESHOLD ) { //&&  core_buffer_len > OPT_THRESHOLD) {
       snode new_entry;
-      new_entry.lookup = msg->msg_iov[i].iov_base + left_fringe_len;
+      new_entry.lookup = (uint64_t)msg->msg_iov[i].iov_base + left_fringe_len;
       new_entry.orig = (uint64_t)msg->msg_iov[i].iov_base;
       new_entry.addr = (uint64_t)msg->msg_iov[i].iov_base;
       new_entry.len = core_buffer_len;
@@ -698,13 +698,14 @@ ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags) {
       handle_existing_buffer(new_entry.lookup);
 
       snode *prev = skiplist_search_buffer_fallin(
-          &addr_list, PAGE_ALIGN_DOWN(new_entry.addr) - 1);
+          &addr_list, (uint64_t)PAGE_ALIGN_DOWN(new_entry.addr) - 1);
 
       if (0 && prev &&
           prev->addr + prev->offset + prev->len + PAGE_SIZE ==
               new_entry.addr + new_entry.offset) {
         printf("[%s] %p will be merged to %p-%p, %lu\n", __func__,
-               new_entry.addr, prev->addr, prev->addr + prev->len, prev->len);
+               (void *)new_entry.addr, (void *)prev->addr, 
+               (void *)(prev->addr + prev->len), prev->len);
 
         prev->len += new_entry.len + (new_entry.offset == 0 ? 0 : PAGE_SIZE);
       } else {
@@ -827,9 +828,8 @@ void handle_missing_fault(void *fault_addr) {
     }
   }
 
-  void *ret =
-      mmap(copy_dst, copy_len, PROT_READ | PROT_WRITE,
-           MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS | MAP_POPULATE, -1, 0);
+  mmap(copy_dst, copy_len, PROT_READ | PROT_WRITE,
+       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS | MAP_POPULATE, -1, 0);
 
   LOG("[%s] copy from the original: %p-%p -> %p-%p, len: %lu\n", __func__,
       copy_src, copy_src + copy_len, copy_dst, copy_dst + copy_len, copy_len);
@@ -841,14 +841,14 @@ void handle_missing_fault(void *fault_addr) {
       __func__);
 
   struct uffdio_range range;
-  range.start = fault_page_start_addr;
+  range.start = (uint64_t)fault_page_start_addr;
   range.len = PAGE_SIZE;
 
   num_faults++;
 
   if (ioctl(uffd, UFFDIO_WAKE, &range) < 0) {
-    printf("[%s] range.start: %p, range.len: %lu\n", __func__, range.start,
-           range.len);
+    printf("[%s] range.start: %p, range.len: %llu\n", __func__, 
+           (void *)range.start, range.len);
     perror("uffdio wake");
     assert(0);
   }
@@ -859,7 +859,7 @@ void *handle_fault() {
   ssize_t nread;
   uint64_t fault_addr;
   uint64_t fault_flags;
-  int ret;
+  //int ret;
   int nmsgs;
   int i;
 
@@ -1054,7 +1054,7 @@ static inline void ensure_init(void) {
       init_done = 1;
     } else {
       while (init_done == 0) {
-        pthread_yield();
+        sched_yield();
       }
       MEM_BARRIER();
     }
