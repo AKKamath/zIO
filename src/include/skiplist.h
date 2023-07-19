@@ -195,7 +195,7 @@ static inline snode *skiplist_front(skiplist *list) {
 static inline void skiplist_dump(skiplist *list) {
   snode *x = list->header;
   while (x && x->forward[1] != list->header) {
-    printf("%p[%p, %p, %u, %u]->", x->forward[1]->lookup,
+    printf("%p[%p, %p, %lu, %lu]->", (void *)x->forward[1]->lookup,
            (void *)x->forward[1]->orig, (void *)x->forward[1]->addr,
            x->forward[1]->len, x->forward[1]->offset);
     x = x->forward[1];
@@ -214,8 +214,9 @@ static inline void snode_dump(const snode *node) {
   fprintf(stderr, "\taddr: %p\n", (void *)node->addr);
   fprintf(stderr, "\tlen: %lu\n", node->len);
   fprintf(stderr, "\toffset: %lu\n", node->offset);
-  fprintf(stderr, "\tcore_buffer: %p-%p\n", node->addr + node->offset,
-          node->addr + node->offset + node->len);
+  fprintf(stderr, "\tcore_buffer: %p-%p\n", (void *)(node->addr + node->offset),
+          (void *)(node->addr + node->offset + node->len));
   fprintf(stderr, "\tcorresponding original: %p-%p\n",
-          node->orig + node->offset, node->orig + node->offset + node->len);
+          (void *)(node->orig + node->offset), 
+          (void *)(node->orig + node->offset + node->len));
 }
