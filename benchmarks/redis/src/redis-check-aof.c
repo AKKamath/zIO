@@ -35,10 +35,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include "config.h"
+#ifdef MLFS
 #include <mlfs/mlfs_interface.h>
 
 int mlfs = 0;
-
+#endif
 #define ERROR(...) { \
     char __buf[1024]; \
     sprintf(__buf, __VA_ARGS__); \
@@ -170,7 +171,7 @@ int main(int argc, char **argv) {
         printf("Invalid arguments\n");
         exit(1);
     }
-
+#ifdef MLFS
 	shell_mlfs = getenv("MLFS");
 
 	if (shell_mlfs) {
@@ -179,7 +180,7 @@ int main(int argc, char **argv) {
 		init_fs();
 		filename="/mlfs/appendonly.aof";
 	}
-
+#endif
     FILE *fp = fopen(filename,"r+");
     if (fp == NULL) {
         printf("Cannot open file: %s\n", filename);

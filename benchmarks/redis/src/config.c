@@ -396,12 +396,14 @@ void loadServerConfigFromString(char *config) {
                 goto loaderr;
             }
             zfree(server.aof_filename);
+#ifdef MLFS
 			if (mlfs) {
 				char db_path[256] = {0};
 				sprintf(db_path, "/mlfs/%s", argv[1]);
 				server.aof_filename = zstrdup(db_path);
 				printf("Prefix aof_filename with /mlfs\n");
 			} else
+#endif
 				server.aof_filename = zstrdup(argv[1]);
         } else if (!strcasecmp(argv[0],"no-appendfsync-on-rewrite")
                    && argc == 2) {
@@ -452,12 +454,14 @@ void loadServerConfigFromString(char *config) {
                 goto loaderr;
             }
             zfree(server.rdb_filename);
+#ifdef MLFS
 			if (mlfs) {
 				char db_path[256] = {0};
 				sprintf(db_path, "/mlfs/%s", argv[1]);
 				server.rdb_filename = zstrdup(db_path);
 				printf("Prefix rdb_filename with /mlfs\n");
 			} else
+#endif
 				server.rdb_filename = zstrdup(argv[1]);
         } else if (!strcasecmp(argv[0],"hash-max-ziplist-entries") && argc == 2) {
             server.hash_max_ziplist_entries = memtoll(argv[1], NULL);

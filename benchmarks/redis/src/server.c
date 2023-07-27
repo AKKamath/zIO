@@ -54,9 +54,11 @@
 #include <sys/utsname.h>
 #include <locale.h>
 #include <sys/socket.h>
+#ifdef MLFS
 #include <mlfs/mlfs_interface.h>
 
 int mlfs = 0;
+#endif
 #include "rsock.h"
 
 /* Our shared "common" objects */
@@ -1503,19 +1505,23 @@ void initServerConfig(void) {
     server.aof_rewrite_incremental_fsync = CONFIG_DEFAULT_AOF_REWRITE_INCREMENTAL_FSYNC;
     server.aof_load_truncated = CONFIG_DEFAULT_AOF_LOAD_TRUNCATED;
     server.pidfile = NULL;
+#ifdef MLFS
 	if (mlfs) {
 		char db_path[256] = {0};
 		sprintf(db_path, "/mlfs/%s", CONFIG_DEFAULT_RDB_FILENAME);
 		server.rdb_filename = zstrdup(db_path);
 		printf("Prefix rdb_filename with /mlfs\n");
 	} else
+#endif
 		server.rdb_filename = zstrdup(CONFIG_DEFAULT_RDB_FILENAME);
-	if (mlfs) {
+#ifdef MLFS
+    if (mlfs) {
 		char db_path[256] = {0};
 		sprintf(db_path, "/mlfs/%s", CONFIG_DEFAULT_AOF_FILENAME);
 		server.aof_filename = zstrdup(db_path);
 		printf("Prefix aof_filename with /mlfs\n");
 	} else
+#endif
 		server.aof_filename = zstrdup(CONFIG_DEFAULT_AOF_FILENAME);
     server.requirepass = NULL;
     server.rdb_compression = CONFIG_DEFAULT_RDB_COMPRESSION;
@@ -3773,13 +3779,14 @@ static void sigShutdownHandler(int sig) {
         msg = "Received shutdown signal, scheduling shutdown...";
     };
 
+#ifdef MLFS
 	if (mlfs) {
 		printf("Shutdown MLFS\n");
 		fflush(stdout);
 		fflush(stderr);
 		shutdown_fs();
 	}
-
+#endif
     /* SIGINT is often delivered via Ctrl+C in an interactive session.
      * If we receive the signal the second time, we interpret this as
      * the user really wanting to quit ASAP without waiting to persist
@@ -3997,7 +4004,7 @@ int main(int argc, char **argv) {
         return -1; /* test not found */
     }
 #endif
-
+#ifdef MLFS
 	shell_mlfs = getenv("MLFS");
 
 	if (shell_mlfs) {
@@ -4005,7 +4012,7 @@ int main(int argc, char **argv) {
 		printf("\x1B[31m \tMLFS mode \x1B[0m\n");
 		init_fs();
 	}
-
+#endif
     /* We need to initialize our libraries, and the server configuration. */
 #ifdef INIT_SETPROCTITLE_REPLACEMENT
     spt_init(argc, argv);

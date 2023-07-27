@@ -1617,10 +1617,12 @@ void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {
 
     /* Prepare a suitable temp file for bulk transfer */
     while(maxtries--) {
+#ifdef MLFS
         if (mlfs)
            snprintf(tmpfile,256,
                "/mlfs/temp-%d.%ld.rdb",(int)server.unixtime,(long int)getpid());
         else
+#endif
            snprintf(tmpfile,256,
                "temp-%d.%ld.rdb",(int)server.unixtime,(long int)getpid());
         dfd = open(tmpfile,O_CREAT|O_WRONLY|O_EXCL,0644);

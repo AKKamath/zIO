@@ -46,6 +46,7 @@
 #include "adlist.h"
 #include "zmalloc.h"
 #include "rsock.h"
+#include <stdbool.h>
 
 #define UNUSED(V) ((void) V)
 #define RANDPTR_INITIAL_SIZE 8

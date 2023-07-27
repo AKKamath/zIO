@@ -41,9 +41,9 @@
 #include <sys/param.h>
 #include <time.h>
 #include <stdio.h>
-
+#ifdef MLFS
 #include <mlfs/mlfs_interface.h>
-
+#endif
 void aofUpdateCurrentSize(void);
 void aofClosePipes(void);
 
@@ -1054,9 +1054,11 @@ int rewriteAppendOnlyFile(char *filename) {
 
     /* Note that we have to use a different temp name here compared to the
      * one used by rewriteAppendOnlyFileBackground() function. */
+#ifdef MLFS
 	if (mlfs)
 		snprintf(tmpfile,256,"/mlfs/t-aof-%d.aof", (int) getpid());
 	else
+#endif
 		snprintf(tmpfile,256,"temp-rewriteaof-%d.aof", (int) getpid());
     fp = fopen(tmpfile,"w");
     if (!fp) {
@@ -1310,9 +1312,11 @@ int rewriteAppendOnlyFileBackground(void) {
         /* Child */
         closeListeningSockets(0);
         redisSetProcTitle("redis-aof-rewrite");
+#ifdef MLFS
 		if (mlfs)
 			snprintf(tmpfile,256,"/mlfs/t-aof-bg-%d.aof", (int) getpid());
 		else
+#endif
 			snprintf(tmpfile,256,"temp-rewriteaof-bg-%d.aof", (int) getpid());
         if (rewriteAppendOnlyFile(tmpfile) == C_OK) {
             size_t private_dirty = zmalloc_get_private_dirty();
@@ -1369,10 +1373,11 @@ void bgrewriteaofCommand(client *c) {
 
 void aofRemoveTempFile(pid_t childpid) {
     char tmpfile[256];
-
+#ifdef MLFS
 	if (mlfs)
 		snprintf(tmpfile,256,"/mlfs/t-aof-bg-%d.aof", (int) childpid);
 	else
+#endif
 		snprintf(tmpfile,256,"temp-rewriteaof-bg-%d.aof", (int) childpid);
     unlink(tmpfile);
 }
@@ -1411,10 +1416,12 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
         /* Flush the differences accumulated by the parent to the
          * rewritten AOF. */
         latencyStartMonitor(latency);
+#ifdef MLFS
 		if (mlfs)
 			snprintf(tmpfile,256,"/mlfs/t-aof-bg-%d.aof",
 					(int)server.aof_child_pid);
 		else
+#endif
 			snprintf(tmpfile,256,"temp-rewriteaof-bg-%d.aof",
 					(int)server.aof_child_pid);
         newfd = open(tmpfile,O_WRONLY|O_APPEND);
@@ -1511,9 +1518,10 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
              * the new AOF from the background rewrite buffer. */
             sdsfree(server.aof_buf);
             server.aof_buf = sdsempty();
-
+#ifdef MLFS
 			if (mlfs)
 				make_digest_request_async(100);
+#endif
         }
 
         server.aof_lastbgrewrite_status = C_OK;

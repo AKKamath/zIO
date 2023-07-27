@@ -862,10 +862,11 @@ int rdbSave(char *filename) {
     FILE *fp;
     rio rdb;
     int error = 0;
-
+#ifdef MLFS
 	if (mlfs)
 		snprintf(tmpfile,256,"/mlfs/temp-%d.rdb", (int) getpid());
 	else
+#endif
 		snprintf(tmpfile,256,"temp-%d.rdb", (int) getpid());
     fp = fopen(tmpfile,"w");
     if (!fp) {
@@ -1286,12 +1287,13 @@ int rdbLoad(char *filename) {
     long long expiretime, now = mstime();
     FILE *fp;
     rio rdb;
-
+#ifdef MLFS
 	if (mlfs) {
 		char mlfs_filename[256];
 		sprintf(mlfs_filename,"/mlfs/%s", filename);
 		if ((fp = fopen(filename,"r")) == NULL) return C_ERR;
 	} else
+#endif
 		if ((fp = fopen(filename,"r")) == NULL) return C_ERR;
 
     rioInitWithFile(&rdb,fp);
