@@ -385,6 +385,8 @@ void *memcpy(void *dest, const void *src, size_t n) {
               "supported by the current kernel\n", __func__);
         }
         perror("register with WP");
+        printf("Args: start %lx len %llu\n", uffdio_register.range.start, uffdio_register.range.len);
+        fflush(stdout);
         abort();
       }
     }
@@ -1019,12 +1021,12 @@ static void init(void) {
     perror("fault thread create");
     abort();
   }
-
+/*
   printf("launching stats\n");
   if (pthread_create(&stats_thread, NULL, print_stats, 0) != 0) {
     perror("stats thread create");
     abort();
-  }
+  }*/
 
   LOG("uffd initialized\n");
 #endif
