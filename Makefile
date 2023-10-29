@@ -34,6 +34,7 @@ SOCKETS_OBJS = $(addprefix src/,control.o transfer.o context.o manage_fd.o \
 	epoll.o)
 INTERPOSE_OBJS = $(addprefix src/,interpose.o)
 COPY_INTERPOSE_OBJS = $(addprefix src/,copy_interpose.o)
+COPY_INTERPOSE_MANUAL_OBJS = $(addprefix src/,copy_interpose_manual.o)
 PAGE_FAULT_OBJS = $(addprefix src/,page_fault_test.o)
 TAS_COPY_INTERPOSE_OBJS = $(addprefix src/,tas_copy_interpose.o)
 ZIO_INTERPOSE_OBJS = $(addprefix src/,zio_interpose.o)
@@ -42,12 +43,15 @@ CFLAGS += -I. -Isrc/sockets/include
 
 shared_objs = $(patsubst %.o,%.shared.o,$(1))
 
-linux:	copy_interpose.so
+linux:	copy_interpose.so copy_interpose_manual.so
 
-all: 	copy_interpose.so page_fault_test.so 
+all: copy_interpose_manual.so	copy_interpose.so page_fault_test.so 
 	
 copy_interpose.so: $(call shared_objs, \
 	$(COPY_INTERPOSE_OBJS) $(UTILS_OBJS))
+
+copy_interpose_manual.so: $(call shared_objs, \
+	$(COPY_INTERPOSE_MANUAL_OBJS) $(UTILS_OBJS))
 
 page_fault_test.so: $(call shared_objs, \
 	$(PAGE_FAULT_OBJS) $(UTILS_OBJS))
@@ -62,13 +66,13 @@ libmem_counter.so: $(call shared_objs, \
 	$(MEM_COUNTER_OBJS) $(SOCKETS_OBJS) $(UTILS_OBJS))
 
 %.shared.o: %.c
-	$(CC) $(CFLAGS) -fPIC -c -o $@ $<
+	g++ $(CFLAGS) -fPIC -c -o $@ $<
 
 %.so:
-	$(CC) $(LDFLAGS) -shared $^ $(LOADLIBES) $(LDLIBS) -o $@
+	g++ $(CFLAGS) $(LDFLAGS) -shared $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 
 clean:
 	rm -f *.o src.o \
 	  copy_interpose.so tas_copy_interpose.so \
-	  page_fault_test.so mem_counter.so 
+	  page_fault_test.so mem_counter.so src/*.o

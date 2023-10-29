@@ -155,6 +155,8 @@
 
 long uffd = -1;
 
+bool started_memcpy = false;
+
 pthread_t fault_thread, stats_thread;
 
 pthread_mutex_t mu;
@@ -319,7 +321,7 @@ void *memcpy(void *dest, const void *src, size_t n) {
 
   const char cannot_optimize = (n <= OPT_THRESHOLD);
 
-  if (cannot_optimize) {
+  if (cannot_optimize || !started_memcpy) {
     return libc_memcpy(dest, src, n);
   }
 
@@ -627,6 +629,18 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) {
 
 ssize_t recv(int sockfd, void* buf, size_t count, int flags) {
   ensure_init();
+
+  if(sockfd == -5 && count == 0) {
+    fprintf(stderr, "Started copy elision\n");
+    started_memcpy = true;
+    return libc_recv(sockfd, buf, count, flags);
+  }
+
+  if(sockfd == -6 && count == 0) {
+    fprintf(stderr, "Ended copy elision\n");
+    started_memcpy = false;
+    return libc_recv(sockfd, buf, count, flags);
+  }
 
   ssize_t ret = 0;
   if(sockfd != -2)
