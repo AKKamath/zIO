@@ -346,7 +346,7 @@ void *memcpy(void *dest, const void *src, size_t n) {
   start = rdtsc();
 
   // Insert if entry not existing
-  if(!src_entry) {
+  if(!src_entry && n - (LEFT_FRINGE_LEN(src) + RIGHT_FRINGE_LEN(n, LEFT_FRINGE_LEN(src)) > 0)) {
     uint64_t left_fringe_len = LEFT_FRINGE_LEN(src);
     uint64_t right_fringe_len = RIGHT_FRINGE_LEN(n, left_fringe_len);
     uint64_t core_buffer_len = n - (left_fringe_len + right_fringe_len);
@@ -1082,9 +1082,6 @@ static inline void ensure_init(void) {
 }
 
 struct setup_handler {
-  setup_handler() {
-    ensure_init();
-  }
   ~setup_handler() {
     print_stats();
   }
