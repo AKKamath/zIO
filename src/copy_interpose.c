@@ -1068,9 +1068,6 @@ static inline void ensure_init(void) {
 }
 
 struct setup_handler {
-  setup_handler() {
-    ensure_init();
-  }
   ~setup_handler() {
     print_stats();
   }
