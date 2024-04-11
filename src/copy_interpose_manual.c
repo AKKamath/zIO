@@ -346,7 +346,7 @@ void *memcpy(void *dest, const void *src, size_t n) {
   start = rdtsc();
 
   // Insert if entry not existing
-  if(!src_entry && n - (LEFT_FRINGE_LEN(src) + RIGHT_FRINGE_LEN(n, LEFT_FRINGE_LEN(src)) > 0)) {
+  if(!src_entry && n - (LEFT_FRINGE_LEN(src) + RIGHT_FRINGE_LEN(n, LEFT_FRINGE_LEN(src))) > 0) {
     uint64_t left_fringe_len = LEFT_FRINGE_LEN(src);
     uint64_t right_fringe_len = RIGHT_FRINGE_LEN(n, left_fringe_len);
     uint64_t core_buffer_len = n - (left_fringe_len + right_fringe_len);
@@ -390,6 +390,18 @@ void *memcpy(void *dest, const void *src, size_t n) {
         LOG_STATS("Args: start %lx len %llu, errno %d\n", 
           uffdio_register.range.start, uffdio_register.range.len, errno);
         fflush(stdout);
+        abort();
+      }
+      struct uffdio_writeprotect wp;
+      wp.range.start = (uint64_t)(src_entry->addr + src_entry->offset);
+      wp.range.len = (uint64_t)src_entry->len;
+      wp.mode = UFFDIO_WRITEPROTECT_MODE_WP;
+      if (ioctl(uffd, UFFDIO_WRITEPROTECT, &wp) == -1) {
+        if (errno == EINVAL) {
+          LOG("[%s] write-protection fault by userfaultfd may not be"
+              "supported by the current kernel\n");
+        }
+        perror("Writeprotect pages");
         abort();
       }
     }
@@ -956,7 +968,7 @@ void *handle_fault(void *dummy) {
 
         if (fault_flags & UFFD_PAGEFAULT_FLAG_WP) {
           LOG("[%s] The original buffer is touched\n", __func__);
-          printf("caught a write-protected page fault\n");
+          //printf("caught a write-protected page fault\n");
 
           // TODO: Currently, entire buffer is being copied, need to do
           // page-by-page

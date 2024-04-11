@@ -390,6 +390,18 @@ void *memcpy(void *dest, const void *src, size_t n) {
         fflush(stdout);
         abort();
       }
+      struct uffdio_writeprotect wp;
+      wp.range.start = (uint64_t)(src_entry->addr + src_entry->offset);
+      wp.range.len = (uint64_t)src_entry->len;
+      wp.mode = UFFDIO_WRITEPROTECT_MODE_WP;
+      if (ioctl(uffd, UFFDIO_WRITEPROTECT, &wp) == -1) {
+        if (errno == EINVAL) {
+          LOG("[%s] write-protection fault by userfaultfd may not be"
+              "supported by the current kernel\n");
+        }
+        perror("Writeprotect pages");
+        abort();
+      }
     }
 
     size_t left_fringe_len = LEFT_FRINGE_LEN(dest);
@@ -942,7 +954,7 @@ void *handle_fault(void *dummy) {
 
         if (fault_flags & UFFD_PAGEFAULT_FLAG_WP) {
           LOG("[%s] The original buffer is touched\n", __func__);
-          printf("caught a write-protected page fault\n");
+          //printf("caught a write-protected page fault\n");
 
           // TODO: Currently, entire buffer is being copied, need to do
           // page-by-page
